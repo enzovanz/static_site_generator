@@ -50,7 +50,7 @@ def split_nodes_image(old_nodes):
             temp_list = original_text.split(f"![{alt_text}]({url})", 1)
             new_node = TextNode(temp_list[0], TextType.TEXT)
             new_image = TextNode(alt_text, TextType.IMAGE, url)
-            if temp_list[0]: # Do not append empty strings
+            if temp_list[0].strip(): # Do not append empty strings
                 new_nodes.append(new_node)
             new_nodes.append(new_image)
             original_text = temp_list[1]
@@ -72,7 +72,7 @@ def split_nodes_link(old_nodes):
             temp_list = original_text.split(f"[{alt_text}]({url})", 1)
             new_node = TextNode(temp_list[0], TextType.TEXT)
             new_link = TextNode(alt_text, TextType.LINK, url)
-            if temp_list[0]: # Do not append empty strings
+            if temp_list[0].strip(): # Do not append empty strings
                 new_nodes.append(new_node)
             new_nodes.append(new_link)
             original_text = temp_list[1]
@@ -90,3 +90,12 @@ def extract_markdown_links(text):
     pattern = r"(?<!!)\[([^\[\]]*)\]\(([^\(\)]*)\)"
     matches = re.findall(pattern, text)
     return matches
+
+def text_to_textnodes(text):
+    main_node =  TextNode(text, TextType.TEXT)
+    bold_split = split_nodes_delimiter([main_node], "**", TextType.BOLD)
+    italic_split = split_nodes_delimiter(bold_split, "_", TextType.ITALIC)
+    code_split = split_nodes_delimiter(italic_split, "`", TextType.CODE)
+    image_split = split_nodes_image(code_split)
+    link_split = split_nodes_link(image_split)
+    return link_split
