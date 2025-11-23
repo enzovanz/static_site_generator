@@ -1,5 +1,6 @@
 from src.htmlnode import LeafNode
 from src.textnode import TextType, TextNode
+import re
 
 def text_node_to_html_node(text_node):
     if text_node.text_type == TextType.TEXT:
@@ -34,4 +35,58 @@ def split_nodes_delimiter(old_nodes, delimiter, text_type):
                 new_node = TextNode(s, text_type)
                 new_nodes.append(new_node)
     return new_nodes
-        
+
+
+def split_nodes_image(old_nodes):
+    new_nodes = []
+    for node in old_nodes:
+        if node.text_type is not TextType.TEXT:
+            new_nodes.append(node)
+            continue
+        image_list = extract_markdown_images(node.text)
+        original_text = node.text
+        for image in image_list:
+            alt_text, url = image[0], image[1]
+            temp_list = original_text.split(f"![{alt_text}]({url})", 1)
+            new_node = TextNode(temp_list[0], TextType.TEXT)
+            new_image = TextNode(alt_text, TextType.IMAGE, url)
+            if temp_list[0]: # Do not append empty strings
+                new_nodes.append(new_node)
+            new_nodes.append(new_image)
+            original_text = temp_list[1]
+        if original_text:
+            new_nodes.append(TextNode(original_text, TextType.TEXT))
+    return new_nodes
+
+
+def split_nodes_link(old_nodes):
+    new_nodes = []
+    for node in old_nodes:
+        if node.text_type is not TextType.TEXT:
+            new_nodes.append(node)
+            continue
+        link_list = extract_markdown_links(node.text)
+        original_text = node.text
+        for link in link_list:
+            alt_text, url = link[0], link[1]
+            temp_list = original_text.split(f"[{alt_text}]({url})", 1)
+            new_node = TextNode(temp_list[0], TextType.TEXT)
+            new_link = TextNode(alt_text, TextType.LINK, url)
+            if temp_list[0]: # Do not append empty strings
+                new_nodes.append(new_node)
+            new_nodes.append(new_link)
+            original_text = temp_list[1]
+        if original_text:
+            new_nodes.append(TextNode(original_text, TextType.TEXT))
+    return new_nodes
+
+
+def extract_markdown_images(text):
+    pattern = r'!\[([^\]]+)\]\(([^)]+)\)'
+    matches = re.findall(pattern, text)
+    return matches
+
+def extract_markdown_links(text):
+    pattern = r"(?<!!)\[([^\[\]]*)\]\(([^\(\)]*)\)"
+    matches = re.findall(pattern, text)
+    return matches
