@@ -1,7 +1,7 @@
 import unittest
 
-from src.functions import text_node_to_html_node, split_nodes_delimiter, extract_markdown_images, extract_markdown_links, split_nodes_image, split_nodes_link, text_to_textnodes
-from src.textnode import TextType, TextNode
+from src.functions import text_node_to_html_node, split_nodes_delimiter, extract_markdown_images, extract_markdown_links, split_nodes_image, split_nodes_link, text_to_textnodes, markdown_to_blocks, block_to_block_type
+from src.textnode import TextType, BlockType, TextNode
 
 class TestTextNodeToHtmlNode(unittest.TestCase):
     def test_text(self):
@@ -241,3 +241,82 @@ class TestTextToTextNodes(unittest.TestCase):
                                                     TextNode("obi wan image", TextType.IMAGE, "https://i.imgur.com/fJRm4Vk.jpeg"),
                                                     TextNode(" and a", TextType.TEXT),
                                                 ])
+        
+class TestMarkdownToBlocks(unittest.TestCase):
+    def test_markdown_to_blocks(self):
+        md = """
+This is **bolded** paragraph
+
+This is another paragraph with _italic_ text and `code` here
+This is the same paragraph on a new line
+
+- This is a list
+- with items
+        """
+        blocks = markdown_to_blocks(md)
+        self.assertEqual(
+            blocks,
+            [
+            "This is **bolded** paragraph",
+            "This is another paragraph with _italic_ text and `code` here\nThis is the same paragraph on a new line",
+            "- This is a list\n- with items",
+            ],
+        )
+
+    def test_markdown_to_blocks_double_space(self):
+        md = """
+This is **bolded** paragraph
+
+
+This is another paragraph with _italic_ text and `code` here
+This is the same paragraph on a new line
+
+
+
+- This is a list
+- with items
+        """
+        blocks = markdown_to_blocks(md)
+        self.assertEqual(
+            blocks,
+            [
+            "This is **bolded** paragraph",
+            "This is another paragraph with _italic_ text and `code` here\nThis is the same paragraph on a new line",
+            "- This is a list\n- with items",
+            ],
+        )
+
+class TestBlockToBlockType(unittest.TestCase):
+    def test_heading(self):
+        block = "# This is a heading"
+        block1= "###### This is a heading"
+        block2= "####### This is a heading"
+        self.assertEqual(block_to_block_type(block), BlockType.HEADING)
+        self.assertEqual(block_to_block_type(block1), BlockType.HEADING)
+        self.assertNotEqual(block_to_block_type(block2), BlockType.HEADING)
+
+    def test_code(self):
+        block = "```\nThis is a paragraph\nSecondLine\n```"
+        self.assertEqual(block_to_block_type(block), BlockType.CODE)
+
+    def test_quote(self):
+        block = ">This is a paragraph"
+        block1 = "> This is a paragraph"
+        block2 = "> >This is a >paragraph"
+        self.assertEqual(block_to_block_type(block), BlockType.QUOTE)
+        self.assertEqual(block_to_block_type(block1), BlockType.QUOTE)
+        self.assertEqual(block_to_block_type(block2), BlockType.QUOTE)
+    
+    def test_ul(self):
+        block = "- This is a ul\n- item\n- item"
+        self.assertEqual(block_to_block_type(block), BlockType.UL)
+
+    def test_ol(self):
+        block = "1. This is a ul\n2. item\n3. item"
+        block2 = "1. This is a ul\n3. item\n2. item"
+        self.assertEqual(block_to_block_type(block), BlockType.OL)
+        self.assertNotEqual(block_to_block_type(block2), BlockType.OL)
+
+    def test_paragraph(self):
+        block = "This is a paragraph"
+        self.assertEqual(block_to_block_type(block), BlockType.PARAGRAPH)

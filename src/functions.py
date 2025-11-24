@@ -1,5 +1,5 @@
 from src.htmlnode import LeafNode
-from src.textnode import TextType, TextNode
+from src.textnode import TextType, BlockType, TextNode
 import re
 
 def text_node_to_html_node(text_node):
@@ -99,3 +99,30 @@ def text_to_textnodes(text):
     image_split = split_nodes_image(code_split)
     link_split = split_nodes_link(image_split)
     return link_split
+
+def markdown_to_blocks(markdown):
+    blocks = markdown.split("\n\n")
+    cleaned = [b.strip() for b in blocks if b.strip()]
+    return cleaned
+
+def block_to_block_type(block):
+    if bool(re.match(r'^#{1,6}\s', block)):
+        return BlockType.HEADING
+    elif bool(re.match(r'^```[\s\S]*?```', block)):
+        return BlockType.CODE
+    elif bool(re.match(r'^>\s?.*', block)):
+        return BlockType.QUOTE
+    elif bool(re.match(r'^-\s', block)):
+        return BlockType.UL
+    else:
+        lines = block.splitlines()
+        numbers = []
+        for line in lines:
+            match = re.match(r'^(\d+)\.\s', line)
+            if match:
+                numbers.append(int(match.group(1)))
+
+        if numbers and all(b == a + 1 for a, b in zip(numbers, numbers[1:])):
+            return BlockType.OL
+
+        return BlockType.PARAGRAPH
