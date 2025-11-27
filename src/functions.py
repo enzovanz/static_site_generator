@@ -1,5 +1,5 @@
-from src.htmlnode import LeafNode
-from src.textnode import TextType, BlockType, TextNode
+from htmlnode import ParentNode, LeafNode
+from textnode import TextType, BlockType, TextNode
 import re
 
 def text_node_to_html_node(text_node):
@@ -110,7 +110,7 @@ def block_to_block_type(block):
         return BlockType.HEADING
     elif bool(re.match(r'^```[\s\S]*?```', block)):
         return BlockType.CODE
-    elif bool(re.match(r'^>\s?.*', block)):
+    elif bool(re.match(r'^>\s?', block)):
         return BlockType.QUOTE
     elif bool(re.match(r'^-\s', block)):
         return BlockType.UL
@@ -126,3 +126,81 @@ def block_to_block_type(block):
             return BlockType.OL
 
         return BlockType.PARAGRAPH
+
+def strip_markers(block, block_type):
+    lines = [b for b in block.split("\n") if b]
+    if block_type == BlockType.QUOTE:
+        lines_cleaned = [re.sub(r'^>\s?', '', line) for line in lines]
+        return "\n".join(lines_cleaned)
+    if block_type == BlockType.UL:
+        lines_cleaned = [re.sub(r'^-\s', '', line) for line in lines]
+        return "\n".join(lines_cleaned)
+    if block_type == BlockType.OL:
+        lines_cleaned = [re.sub(r'^(\d+)\.\s', '', line) for line in lines]
+        return "\n".join(lines_cleaned)
+    if block_type == BlockType.CODE:
+        if len(lines) > 2:
+            if lines[0] == '```':
+                del lines[0]
+            if lines[-1] == '```':
+                del lines[-1]
+        return "\n".join(lines)
+    if block_type == BlockType.HEADING:
+        count = 0
+        while block[count] == "#":
+            count += 1
+        return block[count + 1:]
+    if block_type == BlockType.PARAGRAPH:
+        return block.replace("\n", " ")
+
+def text_to_children(text):
+    childrens = []
+    text_nodes = text_to_textnodes(text)
+    for text_node in text_nodes:
+        childrens.append(text_node_to_html_node(text_node))
+    return childrens
+
+def text_to_list_children(text):
+    childrens = []
+    text_nodes = []
+    for item in text.split("\n"):
+        text_nodes.extend(text_to_textnodes(item))
+    for text_node in text_nodes:
+        children = text_node_to_html_node(text_node)
+        parent = ParentNode("li", [children])
+        childrens.append(parent)
+    return childrens
+
+def markdown_to_html_node(markdown):
+    blocks = markdown_to_blocks(markdown)
+    all_nodes = []
+    for block in blocks:
+        block_type = block_to_block_type(block)
+        block_text = strip_markers(block, block_type)
+        if block_type == BlockType.PARAGRAPH:
+            children = text_to_children(block_text)
+            node = ParentNode("p", children)
+        elif block_type == BlockType.QUOTE:
+            children = text_to_children(block_text)
+            node = ParentNode("blockquote", children)
+        elif block_type == BlockType.CODE:
+            code_text_node = TextNode(block_text, TextType.CODE)
+            code_node = text_node_to_html_node(code_text_node)
+            node = ParentNode("pre", [code_node])
+        elif block_type == BlockType.HEADING:
+            c = 0
+            children = text_to_children(block_text)
+            while block[c] == "#":
+                c += 1
+            node = ParentNode(f"h{c}", children)
+        elif block_type == BlockType.UL:
+            children = text_to_list_children(block_text)
+            node = ParentNode(f"ul", children)
+        elif block_type == BlockType.OL:
+            children = text_to_list_children(block_text)
+            node = ParentNode(f"ol", children)
+        all_nodes.append(node)
+    return ParentNode("div", all_nodes)
+        
+
+        

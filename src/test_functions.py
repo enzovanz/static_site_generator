@@ -1,7 +1,19 @@
 import unittest
 
-from src.functions import text_node_to_html_node, split_nodes_delimiter, extract_markdown_images, extract_markdown_links, split_nodes_image, split_nodes_link, text_to_textnodes, markdown_to_blocks, block_to_block_type
-from src.textnode import TextType, BlockType, TextNode
+from functions import (
+        text_node_to_html_node, 
+        split_nodes_delimiter, 
+        extract_markdown_images, 
+        extract_markdown_links, 
+        split_nodes_image, 
+        split_nodes_link, 
+        text_to_textnodes, 
+        markdown_to_blocks, 
+        block_to_block_type,
+        strip_markers,
+        markdown_to_html_node,
+    )
+from textnode import TextType, BlockType, TextNode
 
 class TestTextNodeToHtmlNode(unittest.TestCase):
     def test_text(self):
@@ -320,3 +332,160 @@ class TestBlockToBlockType(unittest.TestCase):
     def test_paragraph(self):
         block = "This is a paragraph"
         self.assertEqual(block_to_block_type(block), BlockType.PARAGRAPH)
+
+class TestStripMarkers(unittest.TestCase):
+    def test_strip_quotes(self):
+        block = ">FirstLine\n>SecondLine\n> ThirdLine"
+        self.assertEqual(strip_markers(block, BlockType.QUOTE), "FirstLine\nSecondLine\nThirdLine")
+    def test_strip_ul(self):
+        block = "- FirstLine\n- SecondLine\n- ThirdLine"
+        self.assertEqual(strip_markers(block, BlockType.UL), "FirstLine\nSecondLine\nThirdLine")
+    def test_strip_paragraph(self):
+        block = "This is **a** paragraph"
+        self.assertEqual(strip_markers(block, BlockType.PARAGRAPH), "This is **a** paragraph")
+    def test_strip_code(self):
+        block = "```\nCode block\n```"
+        self.assertEqual(strip_markers(block, BlockType.CODE), "Code block")
+    def test_strip_code2(self):
+        block = """
+```
+This is text that _should_ remain
+the **same** even with inline stuff
+```
+"""
+        self.assertEqual(strip_markers(block, BlockType.CODE), "This is text that _should_ remain\nthe **same** even with inline stuff")
+    def test_strip_ol(self):
+        block = "1. FirstLine\n2. SecondLine\n3. ThirdLine"
+        self.assertEqual(strip_markers(block, BlockType.OL), "FirstLine\nSecondLine\nThirdLine")
+    def test_strip_heading(self):
+        block = "# This is a h1"
+        block4 = "#### This is a h4"
+        self.assertEqual(strip_markers(block, BlockType.HEADING), "This is a h1")
+        self.assertEqual(strip_markers(block4, BlockType.HEADING), "This is a h4")
+    
+class TestMarkdownToHTML(unittest.TestCase):
+    def test_paragraphs(self):
+        md = """
+This is **bolded** paragraph
+text in a p
+tag here
+
+This is another paragraph with _italic_ text and `code` here
+
+"""
+
+        node = markdown_to_html_node(md)
+        html = node.to_html()
+        self.assertEqual(
+            html,
+            "<div><p>This is <b>bolded</b> paragraph text in a p tag here</p><p>This is another paragraph with <i>italic</i> text and <code>code</code> here</p></div>",
+        )
+
+    def test_codeblock(self):
+        md = """
+```
+This is text that _should_ remain
+the **same** even with inline stuff
+```
+"""
+
+        node = markdown_to_html_node(md)
+        html = node.to_html()
+        self.assertEqual(
+            html,
+            "<div><pre><code>This is text that _should_ remain\nthe **same** even with inline stuff</code></pre></div>",
+        )
+
+    def test_heading1(self):
+        md = """# Heading 1"""
+
+        node = markdown_to_html_node(md)
+        html = node.to_html()
+        self.assertEqual(html, "<div><h1>Heading 1</h1></div>")
+    
+    def test_heading4(self):
+        md = """#### This is a crazier heading"""
+
+        node = markdown_to_html_node(md)
+        html = node.to_html()
+        self.assertEqual(html, "<div><h4>This is a crazier heading</h4></div>")
+    
+    def test_heading4_break(self):
+        md = """
+#### This is a crazier heading
+"""
+
+        node = markdown_to_html_node(md)
+        html = node.to_html()
+        self.assertEqual(html, "<div><h4>This is a crazier heading</h4></div>")
+    
+    def test_ul(self):
+        md = """
+- Item 1
+- Item 2
+- Item 3
+"""
+
+        node = markdown_to_html_node(md)
+        html = node.to_html()
+        self.assertEqual(html, "<div><ul><li>Item 1</li><li>Item 2</li><li>Item 3</li></ul></div>")
+    
+    def test_ol(self):
+        md = """
+1. Item 1
+2. Item 2
+3. Item 3
+"""
+
+        node = markdown_to_html_node(md)
+        html = node.to_html()
+        self.assertEqual(html, "<div><ol><li>Item 1</li><li>Item 2</li><li>Item 3</li></ol></div>")
+
+    def test_blockquote(self):
+        md = """
+> Item 1
+> Item 2
+> Item 3
+"""
+
+        node = markdown_to_html_node(md)
+        html = node.to_html()
+        self.assertEqual(html, "<div><blockquote>Item 1\nItem 2\nItem 3</blockquote></div>")
+
+    def test_all_blocks_together(self):
+        md = """
+# Heading 1
+
+This is **bold** and _italic_ with `code`.
+
+- Item 1
+- Item 2
+
+1. First
+2. Second
+
+> Quote line 1
+> Quote line 2
+
+```
+Code block _raw_ and **unchanged**
+second line
+```
+
+Another paragraph here.
+"""
+
+        node = markdown_to_html_node(md)
+        html = node.to_html()
+        self.assertEqual(
+            html,
+            "<div>"
+            "<h1>Heading 1</h1>"
+            "<p>This is <b>bold</b> and <i>italic</i> with <code>code</code>.</p>"
+            "<ul><li>Item 1</li><li>Item 2</li></ul>"
+            "<ol><li>First</li><li>Second</li></ol>"
+            "<blockquote>Quote line 1\nQuote line 2</blockquote>"
+            "<pre><code>Code block _raw_ and **unchanged**\nsecond line</code></pre>"
+            "<p>Another paragraph here.</p>"
+            "</div>"
+        )
