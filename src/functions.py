@@ -240,9 +240,13 @@ def generate_page(from_path, template_path, dest_path, basepath):
         html_page
         .replace("{{ Title }}", title)
         .replace("{{ Content }}", html_content)
+    )       
+    html_full_page = (
+        html_page
         .replace('href="/', f'href="{basepath}')
         .replace('src="/', f'src="{basepath}')
-    )
+    ) 
+    
     folder, filename = os.path.split(dest_path)
     os.makedirs(folder, exist_ok=True)
     with open(dest_path, "w", encoding="utf-8") as f:
