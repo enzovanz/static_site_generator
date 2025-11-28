@@ -1,6 +1,8 @@
 from htmlnode import ParentNode, LeafNode
 from textnode import TextType, BlockType, TextNode
 import re
+import os
+import shutil
 
 def text_node_to_html_node(text_node):
     if text_node.text_type == TextType.TEXT:
@@ -201,6 +203,50 @@ def markdown_to_html_node(markdown):
             node = ParentNode(f"ol", children)
         all_nodes.append(node)
     return ParentNode("div", all_nodes)
+
+def copy_files(src, dest):
+    if os.path.exists(dest):
+        shutil.rmtree(dest)
+    os.mkdir(dest)
+    recursive_copy(src, dest)
+
+def recursive_copy(src, dest):
+    for item in os.listdir(src):   
+        file_path_source = os.path.join(src, item)
+        file_path_destination = os.path.join(dest, item)
+        if os.path.isfile(file_path_source):
+            shutil.copy(file_path_source, file_path_destination)
+        else:
+            os.mkdir(file_path_destination)
+            recursive_copy(file_path_source, file_path_destination)
+
+def extract_title(markdown):
+    for line in markdown.split("\n"):
+        if len(line) > 2 and line[0] == "#" and line[1] == " ":
+            return line[2:]
+    raise Exception("Markdown has to have a title")
+
+def generate_page(from_path, template_path, dest_path):
+    print(f"Generating page from {from_path} to {dest_path} using {template_path}")
+    with open(from_path, "r", encoding="utf-8") as md_file:
+        md_content = md_file.read()
+
+    with open(template_path, "r", encoding="utf-8") as html_file:
+        html_page = html_file.read()
+
+    html_content = markdown_to_html_node(md_content).to_html()
+    title = extract_title(md_content)
+    html_full_page = (
+        html_page
+        .replace("{{ Title }}", title)
+        .replace("{{ Content }}", html_content)
+    )
+    folder, filename = os.path.split(dest_path)
+    os.makedirs(folder, exist_ok=True)
+    with open(dest_path, "w", encoding="utf-8") as f:
+        f.write(html_full_page)
+
+
         
 
         

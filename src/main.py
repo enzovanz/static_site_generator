@@ -1,24 +1,12 @@
-import os
-import shutil
-
-def copy_files(src, dest):
-    if os.path.exists(dest):
-        shutil.rmtree(dest)
-    os.mkdir(dest)
-    recursive_copy(src, dest)
-
-def recursive_copy(src, dest):
-    for item in os.listdir(src):   
-        file_path_source = os.path.join(src, item)
-        file_path_destination = os.path.join(dest, item)
-        if os.path.isfile(file_path_source):
-            shutil.copy(file_path_source, file_path_destination)
-        else:
-            os.mkdir(file_path_destination)
-            recursive_copy(file_path_source, file_path_destination)
+from functions import copy_files, generate_page
 
 def main():
     copy_files("static/", "public/")
+    generate_page("content/index.md", "template.html", "public/index.html")
+    generate_page("content/blog/glorfindel/index.md", "template.html", "public/blog/glorfindel/index.html")
+    generate_page("content/blog/tom/index.md", "template.html", "public/blog/tom/index.html")
+    generate_page("content/blog/majesty/index.md", "template.html", "public/blog/majesty/index.html")
+    generate_page("content/contact/index.md", "template.html", "public/contact/index.html")
 
 
 if __name__ == "__main__":

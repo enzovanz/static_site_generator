@@ -12,6 +12,7 @@ from functions import (
         block_to_block_type,
         strip_markers,
         markdown_to_html_node,
+        extract_title,
     )
 from textnode import TextType, BlockType, TextNode
 
@@ -489,3 +490,11 @@ Another paragraph here.
             "<p>Another paragraph here.</p>"
             "</div>"
         )
+
+class TestExtractTitle(unittest.TestCase):
+    def test_extract_h1(self):
+        md = """
+# Este é o título\nbabobeznf\nef
+e
+"""
+        self.assertEqual(extract_title(md), "Este é o título")
