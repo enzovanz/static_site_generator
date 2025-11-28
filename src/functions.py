@@ -242,7 +242,7 @@ def generate_page(from_path, template_path, dest_path, basepath):
         .replace("{{ Content }}", html_content)
     )       
     html_full_page = (
-        html_page
+        html_full_page
         .replace('href="/', f'href="{basepath}')
         .replace('src="/', f'src="{basepath}')
     ) 
